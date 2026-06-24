@@ -2,7 +2,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::thread;
 
-use crate::comms::comms::handle_incoming_messages;
+use crate::comms::handle_incoming_messages;
 
 pub fn start_client(address: &str) -> io::Result<()> {
     let mut stream = TcpStream::connect(address)?;
