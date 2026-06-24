@@ -1,7 +1,3 @@
-mod client;
-mod comms;
-mod server;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -34,10 +30,10 @@ fn main() {
 
     match cli.command {
         Command::Listen { address } => {
-            server::start_server(&address).expect("Failed to start server");
+            blackbird::server::start_server(&address).expect("Failed to start server");
         }
         Command::Connect { address } => {
-            client::start_client(&address).expect("Failed to start client");
+            blackbird::client::start_client(&address).expect("Failed to start client");
         }
     }
 }

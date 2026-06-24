@@ -15,3 +15,11 @@ Listening on 127.0.0.1:8989
 Client connected: 127.0.0.1:47432
 [Client]: hello
 ^C
+
+
+## License
+
+Copyright (C) 2026 Andre Teetor
+
+This project is licensed under the GNU General Public License v2.0 —
+see the [LICENSE](LICENSE) file for details.

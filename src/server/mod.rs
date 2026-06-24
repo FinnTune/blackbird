@@ -1,4 +1,5 @@
-pub mod server;
+pub mod broker;
+pub mod clients;
 
-
-pub use server::start_server;
+pub use broker::{spawn_broker, start_server};
+pub use clients::ClientRegistry;
