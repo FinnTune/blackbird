@@ -1,3 +1,3 @@
-pub mod comms;
+pub mod session;
 
-pub use comms::handle_incoming_messages;
+pub use session::run_interactive_session;
