@@ -2,6 +2,8 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::Duration;
 
+use blackbird::server::ClientRegistry;
+
 pub fn bind_ephemeral() -> (TcpListener, SocketAddr) {
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind ephemeral port");
     let address = listener.local_addr().expect("local address");
@@ -34,4 +36,17 @@ pub fn read_line(stream: &mut TcpStream) -> String {
     let mut line = String::new();
     reader.read_line(&mut line).expect("read line");
     line
+}
+
+pub fn wait_for_clients(registry: &ClientRegistry, expected: usize) {
+    for _ in 0..50 {
+        if registry.len() == expected {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    panic!(
+        "expected {expected} connected clients, found {}",
+        registry.len()
+    );
 }

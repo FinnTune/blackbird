@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::net::{SocketAddr, TcpStream};
+use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::Mutex;
 
 struct Client {
@@ -46,11 +46,17 @@ impl ClientRegistry {
             .retain(|client| client.id != id);
     }
 
+    pub fn disconnect_all(&self) {
+        let mut clients = self.clients.lock().unwrap();
+        for client in clients.drain(..) {
+            let _ = client.writer.shutdown(Shutdown::Write);
+        }
+    }
+
     pub fn broadcast(&self, message: &str) {
-        self.clients
-            .lock()
-            .unwrap()
-            .retain_mut(|client| writeln!(client.writer, "{}", message).is_ok());
+        self.clients.lock().unwrap().retain_mut(|client| {
+            writeln!(client.writer, "{message}").is_ok() && client.writer.flush().is_ok()
+        });
     }
 }
 
@@ -102,6 +108,17 @@ mod tests {
         registry.remove(id);
 
         assert_eq!(registry.len(), 0);
+    }
+
+    #[test]
+    fn disconnect_all_clears_registry() {
+        let registry = ClientRegistry::new();
+        let (_client, server) = pair();
+        registry.register(server).expect("register client");
+
+        registry.disconnect_all();
+
+        assert!(registry.is_empty());
     }
 
     #[test]

@@ -1,23 +1,19 @@
 mod common;
 
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use blackbird::server::spawn_broker;
 
-use blackbird::server::{spawn_broker, ClientRegistry};
-
-use common::{bind_ephemeral, connect_with_timeout, read_line, send_line};
+use common::{bind_ephemeral, connect_with_timeout, read_line, send_line, wait_for_clients};
 
 #[test]
 fn client_message_is_broadcast_to_other_clients() {
     let (listener, address) = bind_ephemeral();
-    let _registry = spawn_broker(listener);
+    let registry = spawn_broker(listener);
 
     let mut alice = connect_with_timeout(address);
     let mut bob = connect_with_timeout(address);
+    wait_for_clients(&registry, 2);
 
     let alice_addr = alice.local_addr().expect("alice local address");
-    thread::sleep(Duration::from_millis(20));
 
     send_line(&mut alice, "hello everyone");
 
@@ -31,11 +27,11 @@ fn client_message_is_broadcast_to_other_clients() {
 #[test]
 fn server_broadcast_reaches_all_clients() {
     let (listener, address) = bind_ephemeral();
-    let registry: Arc<ClientRegistry> = spawn_broker(listener);
+    let registry = spawn_broker(listener);
 
     let mut alice = connect_with_timeout(address);
     let mut bob = connect_with_timeout(address);
-    thread::sleep(Duration::from_millis(20));
+    wait_for_clients(&registry, 2);
 
     registry.broadcast("[server] attention please");
 
@@ -50,12 +46,15 @@ fn disconnected_client_is_removed_from_broker() {
 
     let alice = connect_with_timeout(address);
     let mut bob = connect_with_timeout(address);
-    thread::sleep(Duration::from_millis(20));
-
-    assert_eq!(registry.len(), 2);
+    wait_for_clients(&registry, 2);
 
     drop(alice);
-    thread::sleep(Duration::from_millis(50));
+    for _ in 0..50 {
+        if registry.len() == 1 {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
 
     assert_eq!(registry.len(), 1);
 

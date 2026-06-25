@@ -26,7 +26,7 @@ Connect a client (in another terminal):
 cargo run -- connect 127.0.0.1:8989
 ```
 
-Type a message and press Enter to send. Type `exit` to leave a client session or stop the server.
+Type a message and press Enter to send. Type `exit` to leave a client session or stop the server. Press `Ctrl+C` on the server to shut down and notify connected clients.
 
 Messages from clients are prefixed with the sender's address. Messages from the server operator are prefixed with `[server]`.
 
