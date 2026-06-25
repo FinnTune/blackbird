@@ -6,6 +6,7 @@ use std::thread;
 use std::time::Duration;
 
 use super::clients::ClientRegistry;
+use crate::comms::parse_nickname_handshake;
 
 pub struct Broker {
     registry: Arc<ClientRegistry>,
@@ -89,18 +90,31 @@ fn relay_client_messages(registry: Arc<ClientRegistry>, stream: TcpStream, id: S
     for line in reader.lines() {
         match line {
             Ok(message) => {
-                let formatted = format!("[{}] {}", id, message);
-                println!("{}", formatted);
+                if let Some(nickname) = parse_nickname_handshake(&message) {
+                    if registry.set_nickname(id, nickname) {
+                        println!(
+                            "[system] {} is now known as {}",
+                            id,
+                            registry.display_name(id)
+                        );
+                    }
+                    continue;
+                }
+
+                let sender = registry.display_name(id);
+                let formatted = format!("[{sender}] {message}");
+                println!("{formatted}");
                 registry.broadcast(&formatted);
             }
             Err(e) => {
-                eprintln!("Client {} disconnected: {}", id, e);
+                eprintln!("Client {} disconnected: {}", registry.display_name(id), e);
                 break;
             }
         }
     }
+    let name = registry.display_name(id);
     registry.remove(id);
-    println!("Client disconnected: {}", id);
+    println!("Client disconnected: {name}");
 }
 
 pub fn spawn_broker(listener: TcpListener) -> Arc<ClientRegistry> {

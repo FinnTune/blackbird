@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::Mutex;
+
+use crate::comms::is_valid_nickname;
 
 struct Client {
     id: SocketAddr,
@@ -9,6 +12,7 @@ struct Client {
 
 pub struct ClientRegistry {
     clients: Mutex<Vec<Client>>,
+    nicknames: Mutex<HashMap<SocketAddr, String>>,
 }
 
 impl Default for ClientRegistry {
@@ -21,6 +25,7 @@ impl ClientRegistry {
     pub fn new() -> Self {
         Self {
             clients: Mutex::new(Vec::new()),
+            nicknames: Mutex::new(HashMap::new()),
         }
     }
 
@@ -39,11 +44,32 @@ impl ClientRegistry {
         Ok((id, stream))
     }
 
+    pub fn set_nickname(&self, id: SocketAddr, nickname: &str) -> bool {
+        if !is_valid_nickname(nickname) {
+            return false;
+        }
+        self.nicknames
+            .lock()
+            .unwrap()
+            .insert(id, nickname.trim().to_string());
+        true
+    }
+
+    pub fn display_name(&self, id: SocketAddr) -> String {
+        self.nicknames
+            .lock()
+            .unwrap()
+            .get(&id)
+            .cloned()
+            .unwrap_or_else(|| id.to_string())
+    }
+
     pub fn remove(&self, id: SocketAddr) {
         self.clients
             .lock()
             .unwrap()
             .retain(|client| client.id != id);
+        self.nicknames.lock().unwrap().remove(&id);
     }
 
     pub fn disconnect_all(&self) {
@@ -51,6 +77,7 @@ impl ClientRegistry {
         for client in clients.drain(..) {
             let _ = client.writer.shutdown(Shutdown::Write);
         }
+        self.nicknames.lock().unwrap().clear();
     }
 
     pub fn broadcast(&self, message: &str) {
@@ -86,6 +113,28 @@ mod tests {
     }
 
     #[test]
+    fn set_nickname_updates_display_name() {
+        let registry = ClientRegistry::new();
+        let (_client, server) = pair();
+        let (id, _) = registry.register(server).expect("register client");
+
+        assert_eq!(registry.display_name(id), id.to_string());
+        assert!(registry.set_nickname(id, "alice"));
+        assert_eq!(registry.display_name(id), "alice");
+    }
+
+    #[test]
+    fn set_nickname_rejects_invalid_names() {
+        let registry = ClientRegistry::new();
+        let (_client, server) = pair();
+        let (id, _) = registry.register(server).expect("register client");
+
+        assert!(!registry.set_nickname(id, ""));
+        assert!(!registry.set_nickname(id, "bad nick"));
+        assert_eq!(registry.display_name(id), id.to_string());
+    }
+
+    #[test]
     fn broadcast_delivers_message_to_registered_client() {
         let registry = ClientRegistry::new();
         let (client, server) = pair();
@@ -104,17 +153,20 @@ mod tests {
         let registry = ClientRegistry::new();
         let (_client, server) = pair();
         let (id, _) = registry.register(server).expect("register client");
+        registry.set_nickname(id, "alice");
 
         registry.remove(id);
 
         assert_eq!(registry.len(), 0);
+        assert_eq!(registry.display_name(id), id.to_string());
     }
 
     #[test]
     fn disconnect_all_clears_registry() {
         let registry = ClientRegistry::new();
         let (_client, server) = pair();
-        registry.register(server).expect("register client");
+        let (id, _) = registry.register(server).expect("register client");
+        registry.set_nickname(id, "alice");
 
         registry.disconnect_all();
 

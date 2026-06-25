@@ -40,6 +40,25 @@ fn server_broadcast_reaches_all_clients() {
 }
 
 #[test]
+fn nickname_is_used_in_broadcast_messages() {
+    let (listener, address) = bind_ephemeral();
+    let registry = spawn_broker(listener);
+
+    let mut alice = connect_with_timeout(address);
+    let mut bob = connect_with_timeout(address);
+    wait_for_clients(&registry, 2);
+
+    send_line(&mut alice, "NICK:alice");
+    send_line(&mut bob, "NICK:bob");
+    std::thread::sleep(std::time::Duration::from_millis(50));
+
+    send_line(&mut alice, "hello bob");
+
+    assert_eq!(read_line(&mut bob), "[alice] hello bob\n");
+    assert_eq!(read_line(&mut alice), "[alice] hello bob\n");
+}
+
+#[test]
 fn disconnected_client_is_removed_from_broker() {
     let (listener, address) = bind_ephemeral();
     let registry = spawn_broker(listener);

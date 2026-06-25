@@ -18,6 +18,9 @@ enum Command {
     Connect {
         /// Address and port to connect to (e.g. 127.0.0.1:8989)
         address: String,
+        /// Optional display name shown to other clients
+        #[arg(long)]
+        name: Option<String>,
     },
 }
 
@@ -32,8 +35,9 @@ fn main() {
         Command::Listen { address } => {
             blackbird::server::start_server(&address).expect("Failed to start server");
         }
-        Command::Connect { address } => {
-            blackbird::client::start_client(&address).expect("Failed to start client");
+        Command::Connect { address, name } => {
+            blackbird::client::start_client(&address, name.as_deref())
+                .expect("Failed to start client");
         }
     }
 }

@@ -24,11 +24,12 @@ Connect a client (in another terminal):
 
 ```bash
 cargo run -- connect 127.0.0.1:8989
+cargo run -- connect --name alice 127.0.0.1:8989
 ```
 
 Type a message and press Enter to send. Type `exit` to leave a client session or stop the server. Press `Ctrl+C` on the server to shut down and notify connected clients.
 
-Messages from clients are prefixed with the sender's address. Messages from the server operator are prefixed with `[server]`.
+Messages from clients are prefixed with their nickname when `--name` is provided, otherwise their address. Messages from the server operator are prefixed with `[server]`.
 
 ### Example session
 
@@ -38,7 +39,7 @@ Messages from clients are prefixed with the sender's address. Messages from the 
 Listening on 127.0.0.1:8989
 Client connected: 127.0.0.1:51234
 Client connected: 127.0.0.1:51235
-[127.0.0.1:51234] hello everyone
+[alice] hello everyone
 [server] welcome!
 ```
 
@@ -46,7 +47,7 @@ Client connected: 127.0.0.1:51235
 
 ```
 Connected to server at 127.0.0.1:8989
-[127.0.0.1:51234] hello everyone
+[alice] hello everyone
 [server] welcome!
 ```
 
