@@ -38,6 +38,16 @@ pub fn read_line(stream: &mut TcpStream) -> String {
     line
 }
 
+pub fn read_chat_line(stream: &mut TcpStream) -> String {
+    loop {
+        let line = read_line(stream);
+        if line.starts_with("[system]") && line.contains(" joined") {
+            continue;
+        }
+        return line;
+    }
+}
+
 pub fn wait_for_clients(registry: &ClientRegistry, expected: usize) {
     for _ in 0..50 {
         if registry.len() == expected {

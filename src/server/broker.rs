@@ -81,25 +81,47 @@ fn accept_connections(
     }
 }
 
+fn broadcast_system(registry: &ClientRegistry, message: &str) {
+    println!("{message}");
+    registry.broadcast(message);
+}
+
+fn announce_join(registry: &ClientRegistry, id: SocketAddr, joined: &mut bool) {
+    if *joined {
+        return;
+    }
+    let message = format!("[system] {} joined", registry.display_name(id));
+    broadcast_system(registry, &message);
+    *joined = true;
+}
+
+fn announce_leave(registry: &ClientRegistry, id: SocketAddr, joined: bool) {
+    if !joined {
+        return;
+    }
+    let message = format!("[system] {} left", registry.display_name(id));
+    broadcast_system(registry, &message);
+}
+
 fn spawn_client_relay(registry: Arc<ClientRegistry>, stream: TcpStream, id: SocketAddr) {
     thread::spawn(move || relay_client_messages(registry, stream, id));
 }
 
 fn relay_client_messages(registry: Arc<ClientRegistry>, stream: TcpStream, id: SocketAddr) {
     let reader = BufReader::new(stream);
+    let mut joined = false;
+
     for line in reader.lines() {
         match line {
             Ok(message) => {
                 if let Some(nickname) = parse_nickname_handshake(&message) {
                     if registry.set_nickname(id, nickname) {
-                        println!(
-                            "[system] {} is now known as {}",
-                            id,
-                            registry.display_name(id)
-                        );
+                        announce_join(&registry, id, &mut joined);
                     }
                     continue;
                 }
+
+                announce_join(&registry, id, &mut joined);
 
                 let sender = registry.display_name(id);
                 let formatted = format!("[{sender}] {message}");
@@ -112,7 +134,9 @@ fn relay_client_messages(registry: Arc<ClientRegistry>, stream: TcpStream, id: S
             }
         }
     }
+
     let name = registry.display_name(id);
+    announce_leave(&registry, id, joined);
     registry.remove(id);
     println!("Client disconnected: {name}");
 }
