@@ -27,7 +27,7 @@ cargo run -- connect 127.0.0.1:8989
 cargo run -- connect --name alice 127.0.0.1:8989
 ```
 
-Type a message and press Enter to send. Type `exit` to leave a client session or stop the server. Press `Ctrl+C` on the server to shut down and notify connected clients.
+Type a message and press Enter to send. Type `exit` to leave a client session or stop the server. Press `Ctrl+C` on the server to shut down and notify connected clients, or on a client to disconnect.
 
 Messages from clients are prefixed with their nickname when `--name` is provided, otherwise their address. Messages from the server operator are prefixed with `[server]`. Join and leave events are broadcast as `[system]` messages.
 

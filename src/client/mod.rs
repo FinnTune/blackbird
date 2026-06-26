@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::net::TcpStream;
+use std::net::{Shutdown, TcpStream};
 
 use crate::comms::{nickname_handshake, run_client_session};
 
@@ -12,5 +12,16 @@ pub fn start_client(address: &str, nickname: Option<&str>) -> io::Result<()> {
         stream.flush()?;
     }
 
+    install_disconnect_handler(stream.try_clone()?);
+
     run_client_session(stream)
+}
+
+fn install_disconnect_handler(stream: TcpStream) {
+    ctrlc::set_handler(move || {
+        println!("\n[system] disconnecting");
+        let _ = stream.shutdown(Shutdown::Write);
+        std::process::exit(0);
+    })
+    .expect("install Ctrl+C handler");
 }
